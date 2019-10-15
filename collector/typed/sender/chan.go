@@ -1,22 +1,37 @@
 package sender
 
-import "reflect"
+import (
+	"errors"
+	"reflect"
+	"sync"
+)
+
+var (
+	//ErrChanIsClosed 通道已经关闭
+	ErrChanIsClosed = errors.New("sender: is closed")
+)
 
 //Channel 信道发送者
 type Channel struct {
+	sync.Mutex
+
 	val reflect.Value
 	typ reflect.Type
 
 	elemIsPtr bool
 	elemTyp   reflect.Type
+
+	quit chan struct{}
 }
 
 //NewChannel 创建信道发送者
 func NewChannel(val reflect.Value, typ reflect.Type) Sender {
 	ch := &Channel{
-		val: val,
-		typ: typ,
+		val:  val,
+		typ:  typ,
+		quit: make(chan struct{}),
 	}
+
 	ch.initElemType()
 	return ch
 }
@@ -61,12 +76,23 @@ func (c *Channel) Send(val interface{}) error {
 		}
 	}
 
-	c.val.Send(valOf)
+	select {
+	case <-c.quit:
+		return ErrChanIsClosed
+	default:
+		c.val.Send(valOf)
+	}
 	return nil
 }
 
 //Close 关闭
 func (c *Channel) Close() error {
+	select {
+	case <-c.quit:
+		return ErrChanIsClosed
+	default:
+		close(c.quit)
+	}
 	c.val.Close()
 	return nil
 }
