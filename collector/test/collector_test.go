@@ -60,6 +60,6 @@ func TestChannelCollectorPtrToElem(t *testing.T) {
 	wg.Wait()
 
 	for v := range ch {
-		t.Log(*v)
+		t.Log(v)
 	}
 }
