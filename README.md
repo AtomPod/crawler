@@ -25,6 +25,9 @@
       //可以通过每次解析的时候，传递给下一个Request
       //这样只要在最开始调用的时候传入，可以等待所有请求结束
       WaitGroup *sync.WaitGroup
+      
+      //数据收集器，可用于数据接收使用
+	  Collector collector.Collector
     }
 ### 例子
     //这里创建最多1024个goroutine同时处理请求，设置请求队列大小为2048
@@ -39,11 +42,22 @@
     }
     //创建一个WaitGroup，用于等待该次处理结束
     wg := &sync.WaitGroup{}
+    
+    dataCh := make(chan int , 64)
+    
+    go func() {
+       for v := range dataCh {
+            log.Println(v)
+       }
+    }()
+    
     //创建一个请求
     engine.Process(&parser.Request{
       URL:       u,
       Parser:    parser.ParserFunc(parserFunc),
       WaitGroup: wg,  //WaitGroup可以用于在解析后传入到下一个请求，即可以等待该系列结束
+      Collector: typed.NewCollector(dataCh), //传入数据收集器
     })
 
     wg.Wait()
+    close(dataCh)
