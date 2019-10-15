@@ -3,7 +3,6 @@ package sender
 import (
 	"errors"
 	"reflect"
-	"sync"
 )
 
 var (
@@ -13,8 +12,6 @@ var (
 
 //Channel 信道发送者
 type Channel struct {
-	sync.Mutex
-
 	val reflect.Value
 	typ reflect.Type
 
